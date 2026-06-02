@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <title>Infinix Mobile Finder</title>
+
+    <link rel="stylesheet"
+          href="{{ url_for('static', filename='style.css') }}">
+</head>
+
+<body>
+
+<div class="container">
+
+    <!-- Header -->
+
+    <div class="header">
+
+        <h2>
+            Welcome {{ username }}
+        </h2>
+
+        <a href="/logout" class="logout-btn">
+            Logout
+        </a>
+
+    </div>
+
+    <h1>Infinix Mobile Finder</h1>
+
+    <div class="filters">
+
+        <input
+            type="number"
+            id="minPrice"
+            placeholder="Minimum Price"
+        >
+
+        <input
+            type="number"
+            id="maxPrice"
+            placeholder="Maximum Price"
+        >
+
+        <select id="ram">
+
+            <option value="">
+                Select RAM
+            </option>
+
+            <option value="4">
+                4 GB
+            </option>
+
+            <option value="6">
+                6 GB
+            </option>
+
+            <option value="8">
+                8 GB
+            </option>
+
+        </select>
+
+        <select id="storage">
+
+            <option value="">
+                Select Storage
+            </option>
+
+            <option value="64">
+                64 GB
+            </option>
+
+            <option value="128">
+                128 GB
+            </option>
+
+            <option value="256">
+                256 GB
+            </option>
+
+        </select>
+
+        <button onclick="fetchMobiles()">
+            Search Mobiles
+        </button>
+
+    </div>
+
+    <div id="mobileList"></div>
+
+</div>
+
+<script src="{{ url_for('static', filename='script.js') }}"></script>
+
+</body>
+</html>
