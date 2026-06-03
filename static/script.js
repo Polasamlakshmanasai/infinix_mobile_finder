@@ -12,8 +12,7 @@ async function fetchMobiles() {
     let storage =
         document.getElementById("storage").value;
 
-    let url =
-        "http://127.0.0.1:5000/mobiles?";
+    let url = "/mobiles?";
 
     if (minPrice)
         url += `min_price=${minPrice}&`;
@@ -79,7 +78,7 @@ async function fetchMobiles() {
                 </p>
 
                 <a
-                    href="${mobile.url}"
+                    href="${mobile.link}"
                     target="_blank"
                     class="view-btn"
                 >
