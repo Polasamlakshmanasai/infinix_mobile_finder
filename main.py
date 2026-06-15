@@ -7,9 +7,11 @@ from flask import (
     session,
     jsonify
 )
-
-from flask_cors import CORS
+import os
 import sqlite3
+DB_PATH = "/tmp/auth.db" if os.getenv("VERCEL") else "auth.db"
+from flask_cors import CORS
+
 from mobiles import mobiles
 
 app = Flask(__name__)
@@ -21,7 +23,7 @@ CORS(app)
 
 def create_database():
 
-    conn = sqlite3.connect("auth.db")
+    conn = sqlite3.connect("/tmp/auth.db")
 
     cursor = conn.cursor()
 
@@ -47,7 +49,7 @@ create_database()
 
 def get_db():
 
-    conn = sqlite3.connect("auth.db")
+    conn = sqlite3.connect(DB_PATH)
     conn.row_factory = sqlite3.Row
 
     return conn

@@ -1,30 +1,17 @@
-import sqlite3
+def create_database():
 
-# Connect to SQLite database
-conn = sqlite3.connect("auth.db")
+    conn = sqlite3.connect(DB_PATH)
 
-# Create cursor
-cursor = conn.cursor()
+    cursor = conn.cursor()
 
-# Delete old users table if it exists
-cursor.execute("""
-DROP TABLE IF EXISTS users
-""")
+    cursor.execute("""
+    CREATE TABLE IF NOT EXISTS users(
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        username TEXT NOT NULL,
+        email TEXT UNIQUE NOT NULL,
+        password TEXT NOT NULL
+    )
+    """)
 
-# Create new users table
-cursor.execute("""
-CREATE TABLE users(
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    username TEXT NOT NULL,
-    email TEXT UNIQUE NOT NULL,
-    password TEXT NOT NULL
-)
-""")
-
-# Save changes
-conn.commit()
-
-# Close connection
-conn.close()
-
-print("Database and users table created successfully!")
+    conn.commit()
+    conn.close()
