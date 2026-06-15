@@ -62,7 +62,11 @@ async function fetchMobiles() {
         mobileList.innerHTML += `
 
             <div class="card">
-
+                        <img
+    src="${mobile.image}"
+    alt="${mobile.model}"
+    class="mobile-img"
+>
                 <h2>${mobile.model}</h2>
 
                 <p>
@@ -84,6 +88,7 @@ async function fetchMobiles() {
                 >
                     View Product
                 </a>
+                
 
             </div>
 

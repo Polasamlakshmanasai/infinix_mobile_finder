@@ -58,53 +58,12 @@ def get_db():
     return conn
 
 
-@app.route("/signup", methods=["GET", "POST"])
-def signup():
-
-    if request.method == "POST":
-
-        username = request.form["username"]
-        email = request.form["email"]
-        password = request.form["password"]
-
-        hashed_password = generate_password_hash(password)
-
-        conn = get_db()
-
-        try:
-
-            conn.execute(
-                """
-                INSERT INTO users
-                (username,email,password)
-                VALUES(?,?,?)
-                """,
-                (
-                    username,
-                    email,
-                    hashed_password
-                )
-            )
-
-            conn.commit()
-            conn.close()
-
-            return redirect(url_for("login"))
-
-        except sqlite3.IntegrityError:
-
-            conn.close()
-
-            return "User already exists"
-
-    return render_template("signup.html")
-
 @app.route("/login", methods=["GET", "POST"])
 def login():
 
     if request.method == "POST":
 
-        email = request.form["email"]
+        email = request.form["email"].strip()
         password = request.form["password"]
 
         conn = get_db()
@@ -125,28 +84,62 @@ def login():
         ):
 
             session["user"] = user["username"]
+            session["email"] = user["email"]
 
-            return redirect(
-                url_for("home")
-            )
+            return redirect(url_for("home"))
 
-        return "Invalid Email or Password"
+        return render_template(
+            "login.html",
+            error="Invalid Email or Password"
+        )
 
     return render_template("login.html")
 
+@app.route("/signup", methods=["GET", "POST"])
+def signup():
+
+    if request.method == "POST":
+
+        username = request.form["username"].strip()
+        email = request.form["email"].strip()
+        password = request.form["password"]
+
+        if not username or not email or not password:
+            return render_template(
+                "signup.html",
+                error="All fields are required"
+            )
+
+        conn = get_db()
+        try:
+            conn.execute(
+                "INSERT INTO users(username, email, password) VALUES(?, ?, ?)",
+                (username, email, generate_password_hash(password))
+            )
+            conn.commit()
+        except sqlite3.IntegrityError:
+            conn.close()
+            return render_template(
+                "signup.html",
+                error="Email already registered"
+            )
+        conn.close()
+
+        return redirect(url_for("login"))
+
+    return render_template("signup.html")
 
 @app.route("/")
 def home():
 
     if "user" not in session:
 
-        return redirect(
-            url_for("login")
-        )
+        return redirect(url_for("login"))
 
     return render_template(
         "index.html",
-        username=session["user"]
+        username=session["user"],
+        email=session["email"]
     )
 
 @app.route("/logout")
@@ -162,6 +155,13 @@ def logout():
 
 @app.route("/mobiles")
 def get_mobiles():
+
+    if "user" not in session:
+
+        return jsonify({
+            "status": "unauthorized",
+            "message": "Please login first"
+        }), 401
 
     min_price = request.args.get(
         "min_price",
@@ -189,23 +189,19 @@ def get_mobiles():
 
     for mobile in mobiles:
 
-      
         if not (
             min_price <= mobile["price"] <= max_price
         ):
             continue
 
-       
         if ram is not None and mobile["ram"] != ram:
             continue
 
-        
         if storage is not None and mobile["storage"] != storage:
             continue
 
         result.append(mobile)
 
-    
     if len(result) == 0:
 
         return jsonify({
@@ -213,9 +209,9 @@ def get_mobiles():
             "message": "No mobile found for this combination"
         })
 
-    
     return jsonify({
         "status": "success",
+        "count": len(result),
         "data": result
     })
 

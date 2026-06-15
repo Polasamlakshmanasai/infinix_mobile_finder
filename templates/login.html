@@ -12,7 +12,9 @@
 <div class="auth-container">
 
     <h2>Login</h2>
-
+{% if error %}
+<p class="error">{{ error }}</p>
+{% endif %}
     <form method="POST">
 
         <input
