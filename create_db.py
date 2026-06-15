@@ -1,11 +1,19 @@
 import sqlite3
 
+# Connect to SQLite database
 conn = sqlite3.connect("auth.db")
 
+# Create cursor
 cursor = conn.cursor()
 
+# Delete old users table if it exists
 cursor.execute("""
-CREATE TABLE IF NOT EXISTS users(
+DROP TABLE IF EXISTS users
+""")
+
+# Create new users table
+cursor.execute("""
+CREATE TABLE users(
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     username TEXT NOT NULL,
     email TEXT UNIQUE NOT NULL,
@@ -13,7 +21,10 @@ CREATE TABLE IF NOT EXISTS users(
 )
 """)
 
+# Save changes
 conn.commit()
+
+# Close connection
 conn.close()
 
-print("Users table created successfully")
+print("Database and users table created successfully!")

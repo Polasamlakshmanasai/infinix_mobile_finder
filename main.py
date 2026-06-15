@@ -9,11 +9,6 @@ from flask import (
 )
 
 from flask_cors import CORS
-from werkzeug.security import (
-    generate_password_hash,
-    check_password_hash
-)
-
 import sqlite3
 from mobiles import mobiles
 
@@ -78,10 +73,7 @@ def login():
 
         conn.close()
 
-        if user and check_password_hash(
-            user["password"],
-            password
-        ):
+        if user and user["password"] == password:
 
             session["user"] = user["username"]
             session["email"] = user["email"]
@@ -111,23 +103,27 @@ def signup():
             )
 
         conn = get_db()
+
         try:
             conn.execute(
-                "INSERT INTO users(username, email, password) VALUES(?, ?, ?)",
-                (username, email, generate_password_hash(password))
+                "INSERT INTO users(username, email, password) VALUES (?, ?, ?)",
+                (username, email, password)
             )
             conn.commit()
+
         except sqlite3.IntegrityError:
             conn.close()
             return render_template(
                 "signup.html",
                 error="Email already registered"
             )
+
         conn.close()
 
         return redirect(url_for("login"))
 
     return render_template("signup.html")
+
 
 @app.route("/")
 def home():
