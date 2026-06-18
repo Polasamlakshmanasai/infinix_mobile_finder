@@ -7,12 +7,15 @@ from flask import (
     session,
     jsonify
 )
-import os
-import sqlite3
-DB_PATH = "/tmp/auth.db" if os.getenv("VERCEL") else "auth.db"
+
 from flask_cors import CORS
+import sqlite3
 
 from mobiles import mobiles
+
+# ==========================
+# APP SETUP
+# ==========================
 
 app = Flask(__name__)
 
@@ -20,105 +23,81 @@ app.secret_key = "infinix_secret_key"
 
 CORS(app)
 
+# ==========================
+# SQLITE DATABASE
+# ==========================
 
-def create_database():
-
-    conn = sqlite3.connect("/tmp/auth.db")
-
-    cursor = conn.cursor()
-
-    cursor.execute("""
-    CREATE TABLE IF NOT EXISTS users(
-
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
-
-        username TEXT NOT NULL,
-
-        email TEXT UNIQUE NOT NULL,
-
-        password TEXT NOT NULL
-
-    )
-    """)
-
-    conn.commit()
-    conn.close()
-
-create_database()
+DATABASE = "users.db"
 
 
-def get_db():
+def get_db_connection():
 
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(DATABASE)
+
     conn.row_factory = sqlite3.Row
 
     return conn
 
 
-@app.route("/login", methods=["GET", "POST"])
-def login():
+def create_table():
 
-    if request.method == "POST":
+    conn = get_db_connection()
 
-        email = request.form["email"].strip()
-        password = request.form["password"]
-
-        conn = get_db()
-
-        user = conn.execute(
-            """
-            SELECT * FROM users
-            WHERE email=?
-            """,
-            (email,)
-        ).fetchone()
-
-        conn.close()
-
-        if user and user["password"] == password:
-
-            session["user"] = user["username"]
-            session["email"] = user["email"]
-
-            return redirect(url_for("home"))
-
-        return render_template(
-            "login.html",
-            error="Invalid Email or Password"
+    conn.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id INTEGER PRIMARY KEY AUTOINCREMENT,
+            username TEXT NOT NULL,
+            email TEXT UNIQUE NOT NULL,
+            password TEXT NOT NULL
         )
+    """)
 
-    return render_template("login.html")
+    conn.commit()
+
+    conn.close()
+
+
+create_table()
+
+# ==========================
+# SIGNUP
+# ==========================
+
 
 @app.route("/signup", methods=["GET", "POST"])
 def signup():
 
     if request.method == "POST":
 
-        username = request.form["username"].strip()
-        email = request.form["email"].strip()
+        username = request.form["username"]
+
+        email = request.form["email"]
+
         password = request.form["password"]
 
-        if not username or not email or not password:
-            return render_template(
-                "signup.html",
-                error="All fields are required"
-            )
+        conn = get_db_connection()
 
-        conn = get_db()
+        existing_user = conn.execute(
+            "SELECT * FROM users WHERE email = ?",
+            (email,)
+        ).fetchone()
 
-        try:
-            conn.execute(
-                "INSERT INTO users(username, email, password) VALUES (?, ?, ?)",
-                (username, email, password)
-            )
-            conn.commit()
+        if existing_user:
 
-        except sqlite3.IntegrityError:
             conn.close()
-            return render_template(
-                "signup.html",
-                error="Email already registered"
-            )
+
+            return "User already exists"
+
+        conn.execute(
+            """
+            INSERT INTO users
+            (username, email, password)
+            VALUES (?, ?, ?)
+            """,
+            (username, email, password)
+        )
+
+        conn.commit()
 
         conn.close()
 
@@ -126,6 +105,46 @@ def signup():
 
     return render_template("signup.html")
 
+
+# ==========================
+# LOGIN
+# ==========================
+
+@app.route("/login", methods=["GET", "POST"])
+def login():
+
+    if request.method == "POST":
+
+        email = request.form["email"]
+
+        password = request.form["password"]
+
+        conn = get_db_connection()
+
+        user = conn.execute(
+            """
+            SELECT * FROM users
+            WHERE email = ? AND password = ?
+            """,
+            (email, password)
+        ).fetchone()
+
+        conn.close()
+
+        if user:
+
+            session["user"] = user["username"]
+
+            return redirect(url_for("home"))
+
+        return "Invalid Email or Password"
+
+    return render_template("login.html")
+
+
+# ==========================
+# HOME PAGE
+# ==========================
 
 @app.route("/")
 def home():
@@ -136,30 +155,28 @@ def home():
 
     return render_template(
         "index.html",
-        username=session["user"],
-        email=session["email"]
+        username=session["user"]
     )
+
+
+# ==========================
+# LOGOUT
+# ==========================
 
 @app.route("/logout")
 def logout():
 
     session.clear()
 
-    return redirect(
-        url_for("login")
-    )
+    return redirect(url_for("login"))
 
 
+# ==========================
+# MOBILE FILTER API
+# ==========================
 
 @app.route("/mobiles")
 def get_mobiles():
-
-    if "user" not in session:
-
-        return jsonify({
-            "status": "unauthorized",
-            "message": "Please login first"
-        }), 401
 
     min_price = request.args.get(
         "min_price",
@@ -203,15 +220,57 @@ def get_mobiles():
     if len(result) == 0:
 
         return jsonify({
+
             "status": "not_found",
+
             "message": "No mobile found for this combination"
+
         })
 
     return jsonify({
+
         "status": "success",
-        "count": len(result),
+
         "data": result
+
     })
+
+
+# ==========================
+# VIEW USERS (OPTIONAL)
+# ==========================
+
+@app.route("/users")
+def view_users():
+
+    conn = get_db_connection()
+
+    users = conn.execute(
+        "SELECT id, username, email FROM users"
+    ).fetchall()
+
+    conn.close()
+
+    user_list = []
+
+    for user in users:
+
+        user_list.append({
+
+            "id": user["id"],
+
+            "username": user["username"],
+
+            "email": user["email"]
+
+        })
+
+    return jsonify(user_list)
+
+
+# ==========================
+# RUN APP
+# ==========================
 
 if __name__ == "__main__":
 
