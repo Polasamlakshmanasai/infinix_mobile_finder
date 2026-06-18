@@ -22,12 +22,20 @@ app = Flask(__name__)
 app.secret_key = "infinix_secret_key"
 
 CORS(app)
-
 # ==========================
 # SQLITE DATABASE
 # ==========================
 
-DATABASE = "users.db"
+import os
+import sqlite3
+
+# Local machine -> users.db
+# Vercel -> /tmp/users.db
+
+if os.environ.get("VERCEL"):
+    DATABASE = "/tmp/users.db"
+else:
+    DATABASE = "users.db"
 
 
 def get_db_connection():
@@ -41,22 +49,31 @@ def get_db_connection():
 
 def create_table():
 
-    conn = get_db_connection()
+    try:
 
-    conn.execute("""
-        CREATE TABLE IF NOT EXISTS users (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            username TEXT NOT NULL,
-            email TEXT UNIQUE NOT NULL,
-            password TEXT NOT NULL
-        )
-    """)
+        conn = get_db_connection()
 
-    conn.commit()
+        conn.execute("""
+            CREATE TABLE IF NOT EXISTS users (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT NOT NULL,
+                email TEXT UNIQUE NOT NULL,
+                password TEXT NOT NULL
+            )
+        """)
 
-    conn.close()
+        conn.commit()
+
+        conn.close()
+
+        print("Database initialized successfully")
+
+    except Exception as e:
+
+        print("Database initialization error:", e)
 
 
+# Create table safely
 create_table()
 
 # ==========================
